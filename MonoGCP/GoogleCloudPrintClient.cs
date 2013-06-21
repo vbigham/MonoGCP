@@ -136,7 +136,7 @@ namespace Google.CloudPrint.Client
 
                 if (null != postData)
                 {
-                    byte[] data = Encoding.UTF8.GetBytes(postData.GetPostData());
+                    byte[] data = Encoding.UTF8.GetBytes(postData.GetPostDataString());
 
                     request.ContentType = "multipart/form-data; boundary=" + postData.Boundary;
                     request.ContentLength = data.Length;
@@ -147,10 +147,8 @@ namespace Google.CloudPrint.Client
                 }
 
                 var response = (HttpWebResponse)request.GetResponse();
-                //var responseContent = new StreamReader(response.GetResponseStream()).ReadToEnd();
 
                 var serializer = new DataContractJsonSerializer(typeof(T));
-                //var ms = new MemoryStream(Encoding.UTF8.GetBytes(responseContent));
                 result = serializer.ReadObject(response.GetResponseStream()) as T;
             }
             catch (Exception ex)
@@ -226,8 +224,7 @@ namespace Google.CloudPrint.Client
                 return Search(query, connectionStatus);
             });
         }
-
-
+        
 
         public CloudPrintGenericResponse Submit(SubmitRequest submitRequest)
         {
@@ -544,37 +541,26 @@ namespace Google.CloudPrint.Client
     {
         [DataMember]
         public string id { get; set; }
-
         [DataMember]
         public string name { get; set; }
-
         [DataMember]
         public string description { get; set; }
-
         [DataMember]
         public string proxy { get; set; }
-
         [DataMember]
         public string status { get; set; }
-
         [DataMember]
         public string capsHash { get; set; }
-
         [DataMember]
         public string createTime { get; set; }
-
         [DataMember]
         public string updateTime { get; set; }
-
         [DataMember]
         public string accessTime { get; set; }
-
         [DataMember]
         public bool confirmed { get; set; }
-
         [DataMember]
         public int numberOfDocuments { get; set; }
-
         [DataMember]
         public int numberOfPages { get; set; }
     }
@@ -655,76 +641,52 @@ namespace Google.CloudPrint.Client
     {
         [DataMember]
         public string createTime { get; set; }
-
         [DataMember]
         public string model { get; set; }
-
         [DataMember]
         public string accessTime { get; set; }
-
         [DataMember]
         public string gcpVersion { get; set; }
-
         [DataMember]
         public string ownerId { get; set; }
-
         [DataMember]
         public string isTosAccepted { get; set; }
-
         [DataMember]
         public string type { get; set; }
-
         [DataMember]
         public string id { get; set; }
-
         [DataMember]
         public string description { get; set; }
-
         [DataMember]
         public string defaultDisplayName { get; set; }
-
         [DataMember]
         public string name { get; set; }
-
         [DataMember]
         public string proxy { get; set; }
-
         [DataMember]
         public string capsFormat { get; set; }
-
         [DataMember]
         public List<string> tags { get; set; }
-
         [DataMember]
         public string updateUrl { get; set; }
-
         [DataMember]
         public string supportedContentTypes { get; set; }
-
         [DataMember]
         public string status { get; set; }
-
         [DataMember]
         public string updateTime { get; set; }
-
         [DataMember]
         public string capsHash { get; set; }
-
         [DataMember]
         public List<CloudPrinterAccess> access { get; set; }
-
         [DataMember]
         public string manufacturer { get; set; }
-
         [DataMember]
         public string connectionStatus { get; set; }
-
         [DataMember]
         public string uuid { get; set; }
-
         [DataMember]
         public List<CloudPrinterCapability> capabilities { get; set; }
-
         [DataMember]
         public string displayName { get; set; }
     }
@@ -741,46 +703,32 @@ namespace Google.CloudPrint.Client
     {
         [DataMember]
         public string id { get; set; }
-
         [DataMember]
         public string printerid { get; set; }
-
         [DataMember]
         public string printerName { get; set; }
-
         [DataMember]
         public string printerType { get; set; }
-
         [DataMember]
         public string message { get; set; }
-
         [DataMember]
         public string numberOfPages { get; set; }
-
         [DataMember]
         public string ownerId { get; set; }
-
         [DataMember]
         public string title { get; set; }
-
         [DataMember]
         public string contentType { get; set; }
-
         [DataMember]
         public string fileUrl { get; set; }
-
         [DataMember]
         public string ticketUrl { get; set; }
-
         [DataMember]
         public string createTime { get; set; }
-
         [DataMember]
         public string updateTime { get; set; }
-
         [DataMember]
         public string status { get; set; }
-
         [DataMember]
         public List<string> tags { get; set; }
     }
@@ -804,16 +752,12 @@ namespace Google.CloudPrint.Client
     {
         [DataMember]
         public CloudPrintRequestDetails request { get; set; }
-
         [DataMember]
         public bool success { get; set; }
-
         [DataMember]
         public string errorCode { get; set; }
-
         [DataMember]
         public string message { get; set; }
-
         [DataMember]
         public string xsrf_token { get; set; }
     }
@@ -830,18 +774,88 @@ namespace Google.CloudPrint.Client
     {
         [DataMember]
         public string title { get; set; }
-
         [DataMember]
         public string capabilities { get; set; }
-
         [DataMember]
         public byte[] content { get; set; }
-
         [DataMember]
         public string contentType { get; set; }
-
         [DataMember]
         public string tag { get; set; }
+    }
+    
+
+
+    internal class PostData
+    {
+        public const String CRLF = "\r\n";
+
+        public string Boundary { get; set; }
+        private List<PostDataParam> _mParams;
+
+        public List<PostDataParam> Params
+        {
+            get { return _mParams; }
+            set { _mParams = value; }
+        }
+
+        public PostData()
+        {
+            // Get boundary, default is --AaB03x
+            Boundary = "----CloudPrintFormBoundary-" + DateTime.UtcNow.Ticks;
+
+            // The set of parameters
+            _mParams = new List<PostDataParam>();
+        }
+
+        public string GetPostDataString()
+        {
+            var sb = new StringBuilder();                        
+
+            foreach (var p in _mParams)
+            {
+                sb.Append("--" + Boundary).Append(CRLF);
+
+                if (p.Type == PostDataParamType.File)
+                {
+                    sb.Append(string.Format("Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"", p.Name, p.FileName)).Append(CRLF);
+                    sb.Append("Content-Type: ").Append(p.FileMimeType).Append(CRLF);
+                    sb.Append("Content-Transfer-Encoding: base64").Append(CRLF);
+                    sb.Append("").Append(CRLF);
+                    sb.Append(p.Value).Append(CRLF);
+                }
+                else
+                {
+                    sb.Append(string.Format("Content-Disposition: form-data; name=\"{0}\"", p.Name)).Append(CRLF);
+                    sb.Append("").Append(CRLF);
+                    sb.Append(p.Value).Append(CRLF);
+                }
+            }
+
+            sb.Append("--" + Boundary + "--").Append(CRLF);
+
+            return sb.ToString();
+        }
+    }
+
+    internal enum PostDataParamType
+    {
+        Field,
+        File
+    }
+
+    internal class PostDataParam
+    {
+        public string Name { get; set; }
+        public string FileName { get; set; }
+        public string FileMimeType { get; set; }
+        public string Value { get; set; }
+        public PostDataParamType Type { get; set; }
+
+        public PostDataParam()
+        {
+            FileMimeType = "text/plain";
+        }
     }
 
 }
